@@ -1,0 +1,114 @@
+---
+title: "Report Generator"
+author: "Aaron"
+date: "7/3/2020"
+output:
+  word_document:
+    reference_docx: table.docx
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+```{r, include = FALSE}
+# which are the ordered factors?
+ordvar <- c("Year", "v1", "v3", "v4", "v6", "v7", "v8", "v10")
+# which are the unordered factors?
+catvar <- c("ID")
+# which are numeric?
+numvar <- c("v2", "v5", "v9")
+# which are scales?
+# TBD
+```
+
+```{r, include = FALSE}
+library(psych)
+library(tidyverse)
+library(knitr)
+
+# chunk options defaults
+knitr::opts_chunk$set(dpi = 150, out.width = "10%", out.height = "10%", fig.height = 3, fig.width = 10)
+
+
+# function to create descriptive statistics table
+destable.cts <- function(myvec)
+{
+  # isolate the non-numeric responses
+  nonnum <- myvec[is.na(as.numeric(myvec))]
+  if(length(nonnum) == 0)
+  {
+    nonnum <- "All Numeric."
+  }
+  myvec <- as.numeric(myvec)
+  temp <- round(describe(myvec), 2)
+  # change title to upper case
+  names(temp) <- str_to_upper(names(temp))
+  rownames(temp) <- NULL
+  temp <- temp %>% 
+    select(-VARS, -MAD, -TRIMMED, -SE) %>%
+    mutate(NACount = round(sum(is.na(myvec)),0))
+  
+  mytable <- kable(temp, align = "c")
+  out <- list(table = mytable,
+              nonnum = nonnum)
+  return(out)
+}
+
+histo <- function(colname, data)
+{
+  plot(ggplot(data = data, aes_string(x = colname, fill = colname)) +
+         geom_histogram(stat = "count") + ylab("Count") +
+         theme_classic() + 
+         theme(axis.text.x = element_text(angle = 90),
+               axis.title.x = element_blank(), 
+               legend.position = "none"))
+}
+
+dens <- function(colname, data)
+{
+  temp <- data.frame(var = as.numeric(data[[colname]]))
+  
+  plot(ggplot(data = temp, aes_string(x = "var", fill = "var")) +
+         geom_density(size = 0.9, color = "violetred", alpha = 0.7, lty = "dashed") + ylab("Density") +
+         theme_classic() + 
+         theme(axis.text.x = element_text(size = 12),
+               axis.title.x = element_blank(), 
+               legend.position = "none"))
+}
+
+boxp <- function(colname, data)
+{
+  temp <- data.frame(var = as.numeric(data[[colname]]))
+  
+  plot(ggplot(data = temp, aes_string(x = "var", fill = "var")) +
+         geom_boxplot(varwidth = T) + ylab("Boxplot") +
+         theme_classic() + 
+         ylim(c(-2,2)) +
+         theme(axis.text.x = element_text(size = 12),
+               axis.text.y = element_blank(),
+               axis.title.x = element_blank(), 
+               legend.position = "none"))
+}
+```
+
+```{r, include = FALSE}
+mydata <- read.csv("Data_Cleaning.csv")
+```
+
+# Numerics Univariate Statistics
+
+```{r, results= 'asis', warning = FALSE, echo = FALSE}
+for (i in numvar){
+  cat('\n')  
+  cat("##", i, "\n")
+  cat("\n")
+  descrip <- destable.cts(mydata[[i]])
+  cat("\n")
+  dens(i, data = mydata)
+  boxp(i, data = mydata)
+  cat("\n")
+  print(descrip[["table"]])
+  cat("\nNon-Numeric Elements Detected:\n")
+  print(descrip[["nonnum"]])
+  cat('\n')
+}
+```
