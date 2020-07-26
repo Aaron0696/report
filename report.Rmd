@@ -1,114 +1,138 @@
 ---
-title: "Report Generator"
-author: "Aaron"
-date: "7/3/2020"
+params:
+  data: NA
+  likert: NA
+  cat: NA
+  num: NA
+  NAlab: NA
+  scale1: NA
+  scale2: NA
+  scale3: NA
+  scale4: NA
+  scale5: NA
+  scale6: NA
+  scale7: NA
+  scale8: NA
+  scale9: NA
+  scale10: NA
+  scale11: NA
+  scale12: NA
+  scale13: NA
+  scale14: NA
+  scale15: NA
+  scale16: NA
+  scale17: NA
+  scale18: NA
+  scale19: NA
+  scale20: NA
 output:
-  word_document:
-    reference_docx: table.docx
+  pdf_document:
+    toc: yes
   html_document:
     df_print: paged
-  pdf_document: default
+  word_document:
+    reference_docx: style.docx
 ---
 ```{r, include = FALSE}
 # which are the ordered factors?
-ordvar <- c("Year", "v1", "v3", "v4", "v6", "v7", "v8", "v10")
+# ordvar <- c("Year", "v1", "v3", "v4", "v6", "v7", "v8", "v10")
 # which are the unordered factors?
-catvar <- c("ID")
+# catvar <- c("ID")
 # which are numeric?
-numvar <- c("v2", "v5", "v9")
+#numvar <- c("v2", "v5", "v9")
 # which are scales?
 # TBD
+
+ordvar <- c("Cond", "MotCheck1", "MotCheck2", "MotCheck3","MsgType1","MsgType2","ValCheck1" ,"ValCheck2","ValCheck3", "age","attbase1.1","attbase1.2","attbase1.3","attbase1.4", "attbase1.5","attbase1.6","attbase1.7","attbase2.1","attbase2.2", "attbase2.3","attbase2.4", "attbase2.5","attbase2.6","attbase2.7","attbase2.8")
+numvar <- c("tCogLoadCheck", "tCogLoadList","tInitialEss","tInst","tInst2","tInst3","tInstCogLoad","tMatchedMessage")
+catvar <- c()
 ```
 
 ```{r, include = FALSE}
+# load these packages
 library(psych)
 library(tidyverse)
 library(knitr)
 
 # chunk options defaults
-knitr::opts_chunk$set(dpi = 150, out.width = "10%", out.height = "10%", fig.height = 3, fig.width = 10)
+knitr::opts_chunk$set(dpi = 150, out.width = "50%", out.height = "50%")
 
+source("report_functions.R")
 
-# function to create descriptive statistics table
-destable.cts <- function(myvec)
-{
-  # isolate the non-numeric responses
-  nonnum <- myvec[is.na(as.numeric(myvec))]
-  if(length(nonnum) == 0)
-  {
-    nonnum <- "All Numeric."
-  }
-  myvec <- as.numeric(myvec)
-  temp <- round(describe(myvec), 2)
-  # change title to upper case
-  names(temp) <- str_to_upper(names(temp))
-  rownames(temp) <- NULL
-  temp <- temp %>% 
-    select(-VARS, -MAD, -TRIMMED, -SE) %>%
-    mutate(NACount = round(sum(is.na(myvec)),0))
-  
-  mytable <- kable(temp, align = "c")
-  out <- list(table = mytable,
-              nonnum = nonnum)
-  return(out)
-}
-
-histo <- function(colname, data)
-{
-  plot(ggplot(data = data, aes_string(x = colname, fill = colname)) +
-         geom_histogram(stat = "count") + ylab("Count") +
-         theme_classic() + 
-         theme(axis.text.x = element_text(angle = 90),
-               axis.title.x = element_blank(), 
-               legend.position = "none"))
-}
-
-dens <- function(colname, data)
-{
-  temp <- data.frame(var = as.numeric(data[[colname]]))
-  
-  plot(ggplot(data = temp, aes_string(x = "var", fill = "var")) +
-         geom_density(size = 0.9, color = "violetred", alpha = 0.7, lty = "dashed") + ylab("Density") +
-         theme_classic() + 
-         theme(axis.text.x = element_text(size = 12),
-               axis.title.x = element_blank(), 
-               legend.position = "none"))
-}
-
-boxp <- function(colname, data)
-{
-  temp <- data.frame(var = as.numeric(data[[colname]]))
-  
-  plot(ggplot(data = temp, aes_string(x = "var", fill = "var")) +
-         geom_boxplot(varwidth = T) + ylab("Boxplot") +
-         theme_classic() + 
-         ylim(c(-2,2)) +
-         theme(axis.text.x = element_text(size = 12),
-               axis.text.y = element_blank(),
-               axis.title.x = element_blank(), 
-               legend.position = "none"))
-}
+mydata <- read.csv(params$data)
+# change responses equal to NAlab to become NAs
+mydata[mydata == params$NAlab] <- NA
 ```
 
-```{r, include = FALSE}
-mydata <- read.csv("Data_Cleaning.csv")
-```
+# Numerics Statistics
 
-# Numerics Univariate Statistics
-
-```{r, results= 'asis', warning = FALSE, echo = FALSE}
-for (i in numvar){
-  cat('\n')  
+```{r, results= 'asis', warning = FALSE, echo = FALSE, fig.height = 6, fig.width = 8}
+for (i in params$num){
   cat("##", i, "\n")
   cat("\n")
-  descrip <- destable.cts(mydata[[i]])
+  descrip <- destable.cts(i, mydata)
   cat("\n")
   dens(i, data = mydata)
   boxp(i, data = mydata)
   cat("\n")
   print(descrip[["table"]])
-  cat("\nNon-Numeric Elements Detected:\n")
+  cat("\nNon-Numeric Elements Detected:")
   print(descrip[["nonnum"]])
   cat('\n')
 }
+```
+
+\newpage
+
+# Numeric Factors Statistics
+
+```{r, results= 'asis', warning = FALSE, echo = FALSE, fig.align = "center", fig.height = 8, fig.width = 8}
+for (i in params$likert){
+  cat("##", i, "\n")
+  descrip <- destable.cts(i, data = mydata)
+  cat("\n")
+  histo(i, data = mydata)
+  cat("\n")
+  print(freqtab(i, data = mydata))
+  print(descrip[["table"]])
+  cat("\nNon-Numeric Elements Detected: ")
+  cat(descrip[["nonnum"]])
+  cat("\n")
+  cat("\\pagebreak")
+}
+```
+
+\newpage
+
+# Unordered Factors Statistics
+
+```{r, results = 'asis', warning = FALSE, echo = FALSE, fig.align = "center", fig.height = 8, fig.width = 8}
+for (i in params$cat){
+  cat("##", i, "\n")
+  cat("\n")
+  print(freqtab(i, mydata))
+  cat("\n")
+}
+```
+
+\newpage
+
+# Diagnostics
+
+## Numeric Variables With Non-Numeric Responses
+
+```{r, echo = FALSE, results = "asis"}
+temp <- data.frame("Non Numerics" = nnlist)
+print(kable(temp))
+```
+
+## Numeric Variables With Skewed Responses
+
+```{r, echo = FALSE, results = "asis"}
+temp <- data.frame("Skewed" = skews)
+print(kable(temp))
+```
+
+```{r}
+print(params$scale1)
 ```
