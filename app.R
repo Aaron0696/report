@@ -1,39 +1,44 @@
 library(shiny)
 library(shinythemes)
+library(shinyWidgets)
 # max file limit 100mb
 options(shiny.maxRequestSize = 100*1024^2)
 
 ui <- fluidPage(
     theme = shinytheme("readable"),
-    tags$script(src = "fileInput_text.js"),
+    includeCSS("app.css"),
     titlePanel(h1("Univariate Report Generator"),
                windowTitle = "Univariate Report Generator"),
-##############################################################    
+    ##############################################################    
     fluidRow(
         column(
             wellPanel(# input for uploading of files
                 fileInput("file", h5("Upload Data File"),
                           accept = c(".csv"), placeholder = "...", 
-                          buttonLabel = "Browse Files"),
-                textInput("NAlab", label = h5("Label For Missing Cases"), value = "NA"),
-                h5("Click on ", tags$em("Generate Report"), " after selecting the variables below."),
-                downloadButton("report", "Generate Report")
-            ),
-            width = 12)
+                          buttonLabel = "Browse Files"))
+            ,width = 4),
+        column(
+            wellPanel(textInput("NAlab", label = h5("Label For Missing Cases"), value = "NA"))
+            ,width = 4),
+        column(
+            wellPanel("Placeholder")
+            ,width = 4)
     ),
-##############################################################
+    ##############################################################
     fluidRow(
         column(
             wellPanel(
                 h2("Likert Scales"),
-                "Select the variables which are Likert Scales.",
+                "Select variables which represent responses to Likert Scales, 
+                these responses should consist of integer numbers.",
+                "Histograms, Frequency Counts and Basic Descriptive Statistics will be computed.",
                 uiOutput("ui.likert")
             ),
             width = 4),
         column(
             wellPanel(
                 h2("Categorical Variables"),
-                "Select the variables which are Categorical Variables.",
+                "Select the variables which are Categorical Variables, responses to these variables should consist of .",
                 uiOutput("ui.cat")
             ),
             width = 4),
@@ -45,20 +50,27 @@ ui <- fluidPage(
             ),
             width = 4)
     ),
-    fluidRow(column(
-        wellPanel(
-            h2("Scales"),
-            "Use the slider to input the number of Scales.",
-            sliderInput("numscales", label = h3("Number of Scales"), min = 0, 
-                        max = 20, value = 0),
-            uiOutput("scales")
-        ),
-        width = 4))
+    fluidRow(
+        column(
+            wellPanel(
+                h2("Scales"),
+                "Use the slider to input the number of Scales.",
+                numericInput("numscales", label = h3("Number of Scales"), min = 0, 
+                             max = 20, value = 0),
+                uiOutput("scales")
+            ),
+            width = 9),
+        column(
+            wellPanel(
+                h5("Click on ", tags$em("Generate Report"), " after selecting the variables below."),
+                downloadButton("report", "Generate Report")
+            ),
+        width = 3)
+    )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-
     # get address of the data using the address provided by the user
     mydata <- reactive({
         inFile <- input$file
@@ -70,27 +82,47 @@ server <- function(input, output) {
         # read the dataset and assign it to mydata
         return(read.csv(inFile$datapath))
     })
-    
     # the UI for choosing likert scales
     output$ui.likert <- renderUI({
-        
-        checkboxGroupInput("likert", label = NULL, 
-                           choices = names(mydata()),
-                           selected = NULL)
+        pickerInput(
+            inputId = "likert", 
+            choices = names(mydata()),
+            options = list(`actions-box` = TRUE,
+                           `deselect-all-text` = "Deselect All",
+                           `select-all-text` = "Select All",
+                           `none-selected-text` = "No Variables Selected",
+                           `selected-text-format`= "count",
+                           `count-selected-text` = "{0} Variables Selected"), 
+            multiple = TRUE
+        )
     })
     # the UI for choosing categorical variables
     output$ui.cat <- renderUI({
-        
-        checkboxGroupInput("cat", label = NULL, 
-                           choices = names(mydata()),
-                           selected = NULL)
+        pickerInput(
+            inputId = "cat", 
+            choices = names(mydata()),
+            options = list(`actions-box` = TRUE,
+                           `deselect-all-text` = "Deselect All",
+                           `select-all-text` = "Select All",
+                           `none-selected-text` = "No Variables Selected",
+                           `selected-text-format`= "count",
+                           `count-selected-text` = "{0} Variables Selected"), 
+            multiple = TRUE
+        )
     })
     # the UI for choosing numeric
     output$ui.num <- renderUI({
-        
-        checkboxGroupInput("num", label = NULL, 
-                           choices = names(mydata()),
-                           selected = NULL)
+        pickerInput(
+            inputId = "num", 
+            choices = names(mydata()),
+            options = list(`actions-box` = TRUE,
+                           `deselect-all-text` = "Deselect All",
+                           `select-all-text` = "Select All",
+                           `none-selected-text` = "No Variables Selected",
+                           `selected-text-format`= "count",
+                           `count-selected-text` = "{0} Variables Selected"), 
+            multiple = TRUE
+        )
     })
     
     # the UI for choosing the likert scales that make up a scale

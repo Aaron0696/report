@@ -64,7 +64,7 @@ mydata <- read.csv(params$data)
 mydata[mydata == params$NAlab] <- NA
 ```
 
-# Numerics Statistics
+# Continuous Variables
 
 ```{r, results= 'asis', warning = FALSE, echo = FALSE, fig.height = 6, fig.width = 8}
 for (i in params$num){
@@ -76,15 +76,13 @@ for (i in params$num){
   boxp(i, data = mydata)
   cat("\n")
   print(descrip[["table"]])
-  cat("\nNon-Numeric Elements Detected:")
-  print(descrip[["nonnum"]])
   cat('\n')
 }
 ```
 
 \newpage
 
-# Numeric Factors Statistics
+# Likert Scales
 
 ```{r, results= 'asis', warning = FALSE, echo = FALSE, fig.align = "center", fig.height = 8, fig.width = 8}
 for (i in params$likert){
@@ -95,8 +93,6 @@ for (i in params$likert){
   cat("\n")
   print(freqtab(i, data = mydata))
   print(descrip[["table"]])
-  cat("\nNon-Numeric Elements Detected: ")
-  cat(descrip[["nonnum"]])
   cat("\n")
   cat("\\pagebreak")
 }
@@ -104,7 +100,7 @@ for (i in params$likert){
 
 \newpage
 
-# Unordered Factors Statistics
+# Categorical/Nominal Variables
 
 ```{r, results = 'asis', warning = FALSE, echo = FALSE, fig.align = "center", fig.height = 8, fig.width = 8}
 for (i in params$cat){
@@ -117,23 +113,62 @@ for (i in params$cat){
 
 \newpage
 
-# Diagnostics
+# Scales
 
-## Numeric Variables With Non-Numeric Responses
-
-```{r, echo = FALSE, results = "asis"}
-temp <- data.frame("Non Numerics" = nnlist)
-print(kable(temp))
+```{r, echo = FALSE, results = "asis", warning = FALSE, message = FALSE}
+for(r in 1:20)
+{
+  # make the variable name to refer to the scale
+  scale.name <- paste0("scale", r)
+  # save the character vector containing the names of the items that make up the scale
+  components <- params[[scale.name]]
+  # make a string that concatenates the names of the components
+  comp.name <- paste0(components, collapse = ", ")
+  # if no scale was specified, return nothing
+  if(length(components) == 0)
+  {
+    return(cat("***"))
+  }
+  # retrieve the specified columns from the dataframe
+  to.scale <- mydata[,components]
+  to.scale <- apply(to.scale, 2, FUN = as.numeric)
+  # create mean scores
+  scale.means <- data.frame(scores = rowMeans(to.scale))
+  # change name to relect the items
+  names(scale.means) <- comp.name
+  # get summary statistics
+  descrp <- destable.cts(comp.name, data = scale.means)
+  # get reliability statistics
+  myscale.info <- scale.info(to.scale)
+  
+  # outputs
+  cat("##", comp.name, "\n")
+  cat("\n")
+  dens(comp.name, data = scale.means)
+  boxp(comp.name, data = scale.means)
+  cat("\n")
+  print(descrp[["table"]])
+  
+  cat("**CRONBACH ALPHA** = ", round(myscale.info[["cronalpha"]],3))
+  cat("\n\n")
+  # print results out in kable tables
+  print(kable(myscale.info[["df"]]))
+}
 ```
 
-## Numeric Variables With Skewed Responses
+# Preliminary Diagnostics
+
+## Skewed Variables
 
 ```{r, echo = FALSE, results = "asis"}
 temp <- data.frame("Skewed" = skews)
-print(kable(temp))
+if(nrow(temp) == 0)
+{
+  cat("No Variables With ABS(SKEW) > 1 Detected.")
+} else {
+  print(kable(temp))
+}
 ```
 
-```{r}
-# continue here!
-print(params$scale1)
-```
+
+

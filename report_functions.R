@@ -73,6 +73,27 @@ freqtab <- function(colname, data)
   return(mytable)
 }
 
+# function to create tables to summarize a scale
+# input: a matrix/dataframe containing the items that make up the scale
+# output: a list of information to be fed into kable()
+scale.info <- function(scale.items)
+{
+  # calculate cronbach alpha and other item statistics using alpha() from psych
+  results <- psych::alpha(scale.items, na.rm = TRUE, warnings = FALSE)
+  # save cronbach alpha
+  cronalpha <- results[["total"]]$raw_alpha
+  # create a dataframe which summarizes the item level statistics in a single table
+  dfprint <- list(df = data.frame(COMPONENTS = rownames(results[["item.stats"]]),
+                                  N = round(results[["item.stats"]]$n, 2),
+                                  MEAN = round(results[["item.stats"]]$mean, 2),
+                                  SD = round(results[["item.stats"]]$sd, 2),
+                                  Alpha.If.Dropped = round(results[["alpha.drop"]]$raw_alpha, 3),
+                                  Corr.With.Scale = round(results[["item.stats"]]$raw.r, 2)),
+                  # save cronbach alpha too
+                  cronalpha = cronalpha)
+  return(dfprint)
+}
+
 # function to create a histogram
 # input: a dataframe and the column name of the variable in the dataframe
 # output: a histogram
